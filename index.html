@@ -103,11 +103,7 @@ body.light .opts-panel{background:rgba(0,0,0,0.03)}
 body.dark .opt-name{color:#94a3b8}
 body.light .opt-name{color:#6b7280}
 .opt-qty{font-weight:800;font-size:13px;flex-shrink:0}
-.btn-cart{width:100%;padding:6px 0;border-radius:7px;font-size:11px;font-weight:700;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;margin-top:6px}
 .card-actions{padding:6px 8px;border-top:1px solid rgba(128,128,128,0.1)}
-.cart-item{border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
-body.dark .cart-item{background:#0f1020;border:1px solid rgba(255,255,255,0.07)}
-body.light .cart-item{background:#fff;border:1px solid rgba(0,0,0,0.08)}
 .week-group{margin-bottom:20px}
 .week-header{display:flex;align-items:center;gap:8px;padding:10px 14px;font-weight:700;font-size:12px}
 body.dark .week-header{background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.35);border-radius:10px 10px 0 0}
@@ -164,41 +160,6 @@ body.light #loading{background:#f5f5f7}
 <div id="loading"><div class="spinner"></div><div style="font-size:14px;color:#475569">연결 중...</div></div>
 <div id="toast"></div>
 
-<!-- 장바구니 담기 모달 -->
-<div class="modal-bg" id="cart-modal" style="display:none" onclick="if(event.target===this)closeModal('cart-modal')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="cart-modal-title">장바구니 담기</div>
-    <div id="cart-opt-wrap" style="margin-bottom:14px"></div>
-    <div class="field-wrap">
-      <div class="field-label">수량</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
-        <button onclick="adjQty(-1)" style="width:36px;height:36px;border-radius:99px;font-size:20px;font-weight:300;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;display:flex;align-items:center;justify-content:center">−</button>
-        <input type="number" id="cart-qty" min="1" value="1" class="field-input" style="width:72px;text-align:center;padding:8px;font-size:18px;font-weight:800">
-        <button onclick="adjQty(1)" style="width:36px;height:36px;border-radius:99px;font-size:20px;font-weight:300;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;display:flex;align-items:center;justify-content:center">＋</button>
-        <span id="cart-stock-label" style="font-size:11px;color:#475569"></span>
-      </div>
-    </div>
-    <button class="btn-primary" onclick="confirmAddToCart()">🛒 장바구니에 담기</button>
-    <button class="btn-secondary-sm" onclick="closeModal('cart-modal')">취소</button>
-  </div>
-</div>
-
-<!-- 발주 확인 모달 -->
-<div class="modal-bg" id="checkout-modal" style="display:none" onclick="if(event.target===this)closeModal('checkout-modal')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📦 발주 요청서 확인</div>
-    <div id="checkout-list" style="border-radius:12px;padding:12px 14px;margin-bottom:14px" class="stat-tile"></div>
-    <div class="field-wrap">
-      <div class="field-label">매장명 *</div>
-      <input class="field-input" id="store-name" placeholder="예: 신세계 강남점" onkeydown="if(event.key==='Enter')confirmOrder()">
-    </div>
-    <button class="btn-primary" onclick="confirmOrder()">🚀 발주하기</button>
-    <button class="btn-secondary-sm" onclick="closeModal('checkout-modal')">취소</button>
-  </div>
-</div>
-
 <!-- 헤더 -->
 <div id="app-header">
   <div style="display:flex;align-items:center;gap:10px">
@@ -223,10 +184,6 @@ body.light #loading{background:#f5f5f7}
   <button onclick="window.openAddItemModal()" style="position:fixed;bottom:calc(60px + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:26px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;z-index:90" id="add-item-fab">＋</button>
   </div>
 
-  <div id="tab-cart" class="tab-pane"><div class="page-scroll" id="cart-page">
-    <div style="height:80px"></div>
-  </div></div>
-
   <div id="tab-orders" class="tab-pane"><div class="page-scroll">
     <div style="position:relative;margin-bottom:12px">
       <input id="order-search" type="search" placeholder="🔍 매장명 · 상품명 검색" autocomplete="off"
@@ -243,7 +200,6 @@ body.light #loading{background:#f5f5f7}
 
 <div id="bottom-nav">
   <button class="nav-btn active" id="nav-stock" onclick="switchTab('stock')"><span class="nav-icon">📦</span>재고</button>
-  <button class="nav-btn" id="nav-cart" onclick="switchTab('cart')"><span class="nav-icon">🛒</span>장바구니<div class="nav-badge" id="cart-badge" style="display:none">0</div></button>
   <button class="nav-btn" id="nav-orders" onclick="switchTab('orders')"><span class="nav-icon">📋</span>출고요청</button>
 </div>
 
@@ -261,14 +217,13 @@ const db=getFirestore(initializeApp({
 }));
 
 window.closeModal=id=>{document.getElementById(id)?.remove();};
-let items=[],orders=[],cart=[];
+let items=[],orders=[];
 let filterYear="전체",filterColl="전체";
 let collapsedGroups=new Set();
 let collapsedWeeks=new Set();
 let collapsedMonths=new Set();
 let collapsedYears=new Set();
 let showLowOnly=false,isDark=true;
-let cartTarget=null,cartSelOpt=null;
 
 function isSet(i){return i.name&&i.name.toUpperCase().includes("SET");}
 function totalQty(i){
@@ -307,13 +262,12 @@ window.toggleTheme=()=>{
 };
 
 window.switchTab=t=>{
-  ["stock","cart","orders"].forEach(id=>{
+  ["stock","orders"].forEach(id=>{
     document.getElementById("tab-"+id).classList.remove("active");
     document.getElementById("nav-"+id).classList.remove("active");
   });
   document.getElementById("tab-"+t).classList.add("active");
   document.getElementById("nav-"+t).classList.add("active");
-  if(t==="cart")renderCart();
   if(t==="orders")renderOrders();
 
 };
@@ -340,109 +294,6 @@ window.setFY=y=>{filterYear=y;filterColl="전체";renderStock();};
 window.setFC=c=>{filterColl=c;renderStock();};
 window.toggleGroup=gk=>{collapsedGroups.has(gk)?collapsedGroups.delete(gk):collapsedGroups.add(gk);renderStock();};
 window.toggleLowOnly=()=>{showLowOnly=!showLowOnly;renderStock();};
-
-// ── 장바구니 모달 ──
-window.openCartModal=(itemId)=>{
-  cartTarget=items.find(i=>i.id===itemId);if(!cartTarget)return;
-  const hasOpts=cartTarget.options?.length>0;
-  cartSelOpt=hasOpts?cartTarget.options[0].name:null;
-  document.getElementById("cart-modal-title").textContent=cartTarget.name;
-  document.getElementById("cart-qty").value=1;
-  renderCartOptWrap();
-  updateStockLabel();
-  document.getElementById("cart-modal").style.display="flex";
-};
-
-function renderCartOptWrap(){
-  const wrap=document.getElementById("cart-opt-wrap");
-  if(!cartTarget?.options?.length){wrap.innerHTML="";return;}
-  wrap.innerHTML=`<div class="field-label" style="margin-bottom:8px">옵션 선택</div><div style="display:flex;flex-wrap:wrap;gap:4px">`
-    +cartTarget.options.map(o=>`<button class="opt-sel-btn${cartSelOpt===o.name?" sel":""}" onclick="selOpt('${o.name.replace(/'/g,"\\'")}')">
-      ${o.name}<span style="font-size:10px;opacity:.7;margin-left:4px">${o.quantity||0}개</span>
-    </button>`).join("")+`</div>`;
-}
-window.selOpt=name=>{cartSelOpt=name;renderCartOptWrap();updateStockLabel();};
-function updateStockLabel(){
-  if(!cartTarget)return;
-  let stock=0;
-  if(cartSelOpt&&cartTarget.options){const o=cartTarget.options.find(x=>x.name===cartSelOpt);stock=o?.quantity||0;}
-  else stock=totalQty(cartTarget);
-  document.getElementById("cart-stock-label").textContent=`재고 ${stock}개`;
-}
-window.adjQty=d=>{
-  const el=document.getElementById("cart-qty");
-  el.value=Math.max(1,parseInt(el.value||1)+d);
-};
-window.confirmAddToCart=()=>{
-  if(!cartTarget)return;
-  const qty=parseInt(document.getElementById("cart-qty").value)||1;
-  let stock=0;
-  if(cartSelOpt&&cartTarget.options){const o=cartTarget.options.find(x=>x.name===cartSelOpt);stock=o?.quantity||0;}
-  else stock=totalQty(cartTarget);
-  if(qty>stock){showToast(`재고 부족! 현재 ${stock}개`,"#f87171");return;}
-  const key=cartTarget.id+(cartSelOpt||"");
-  const existing=cart.find(c=>c.key===key);
-  if(existing)existing.qty+=qty;
-  else cart.push({key,itemId:cartTarget.id,itemName:cartTarget.name,optName:cartSelOpt,collection:cartTarget.collection,qty,unit:cartTarget.unit||"개"});
-  closeModal("cart-modal");
-  updateCartBadge();
-  showToast(`🛒 ${cartTarget.name}${cartSelOpt?` [${cartSelOpt}]`:""} ${qty}개 담았어요`);
-};
-
-function updateCartBadge(){
-  const total=cart.reduce((a,c)=>a+c.qty,0);
-  const badge=document.getElementById("cart-badge");
-  if(total>0){badge.style.display="flex";badge.textContent=total;}
-  else badge.style.display="none";
-}
-
-// ── 발주 ──
-window.openCheckout=()=>{
-  if(!cart.length)return;
-  const total=cart.reduce((a,c)=>a+c.qty,0);
-  document.getElementById("checkout-list").innerHTML=cart.map(c=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(128,128,128,0.1)">
-      <div>
-        <div style="font-size:13px;font-weight:600">${c.itemName}${c.optName?` [${c.optName}]`:""}</div>
-        <div style="font-size:10px;color:#6366f1;margin-top:1px">${c.collection}</div>
-      </div>
-      <div style="font-weight:800;font-size:14px">${c.qty}<span style="font-size:10px;font-weight:400;color:#475569"> ${c.unit}</span></div>
-    </div>`).join("")
-    +`<div style="border-top:1px solid rgba(128,128,128,0.15);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:12px">
-      <span style="color:#475569">총 수량</span><span style="font-weight:800;color:#6366f1">${total}개</span></div>`;
-  document.getElementById("store-name").value="";
-  document.getElementById("checkout-modal").style.display="flex";
-  setTimeout(()=>document.getElementById("store-name").focus(),100);
-};
-
-window.confirmOrder=async()=>{
-  const storeName=document.getElementById("store-name").value.trim();
-  if(!storeName){showToast("매장명을 입력해주세요","#f87171");return;}
-  // 재고 즉시 차감
-  for(const c of cart){
-    const item=items.find(i=>i.id===c.itemId);if(!item)continue;
-    const clone=JSON.parse(JSON.stringify(item));
-    if(c.optName&&clone.options){
-      const o=clone.options.find(x=>x.name===c.optName);
-      if(o)o.quantity=Math.max(0,(o.quantity||0)-c.qty);
-    }else{clone.quantity=Math.max(0,(clone.quantity||0)-c.qty);}
-    try{await setDoc(doc(collection(db,"items"),item.id),clone);}catch(e){}
-  }
-  // 발주 저장
-  try{
-    await addDoc(collection(db,"orders"),{
-      storeName,status:"준비중",
-      weekLabel:getWeekLabel(new Date().toISOString()),
-      createdAt:serverTimestamp(),
-      date:todayDate(),time:nowTime(),
-      items:cart.map(c=>({itemId:c.itemId,itemName:c.itemName,optName:c.optName||null,collection:c.collection,qty:c.qty,unit:c.unit}))
-    });
-  }catch(e){showToast("저장 오류: "+e.message,"#f87171");return;}
-  cart=[];updateCartBadge();
-  closeModal("checkout-modal");
-  showToast("🚀 발주 완료! 재고가 차감됐어요.");
-  switchTab("orders");
-};
 
 // ── 렌더 재고 ──
 
@@ -585,38 +436,6 @@ function renderStock(){
     </div>`;
   }}).join("");
 }
-
-// ── 렌더 장바구니 ──
-function renderCart(){
-  const page=document.getElementById("cart-page");
-  if(!cart.length){
-    page.innerHTML=`<div style="text-align:center;padding:60px 20px">
-      <div style="font-size:40px;margin-bottom:12px">🛒</div>
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">장바구니가 비어있어요</div>
-      <div style="font-size:13px;color:#475569;margin-bottom:20px">재고 탭에서 담기 버튼을 눌러주세요</div>
-      <button onclick="window.switchTab('stock')" class="btn-primary" style="width:auto;padding:10px 24px;border-radius:99px">재고 보러가기</button>
-    </div>`;
-    return;
-  }
-  const total=cart.reduce((a,c)=>a+c.qty,0);
-  page.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:12px">담은 상품 ${cart.length}종 · 총 ${total}개</div>`
-    +cart.map((c,i)=>`
-    <div class="cart-item">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${c.itemName}${c.optName?` [${c.optName}]`:""}</div>
-        <div style="font-size:11px;color:#6366f1;margin-top:2px">${c.collection}</div>
-      </div>
-      <div style="font-weight:800;font-size:18px;flex-shrink:0">${c.qty}<span class="unit">${c.unit}</span></div>
-      <button onclick="removeFromCart(${i})" style="padding:4px 10px;border-radius:8px;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);color:#f87171;font-size:12px;font-weight:600;flex-shrink:0">제거</button>
-    </div>`).join("")
-    +`<button onclick="window.openCheckout()" class="btn-primary" style="margin-top:8px">🚀 발주하기 (${total}개)</button>
-    <button onclick="clearCart()" style="width:100%;padding:11px;border-radius:12px;background:rgba(255,255,255,0.06);color:#94a3b8;font-weight:600;font-size:14px;margin-top:8px;border:none;cursor:pointer">장바구니 비우기</button>
-    <div style="height:80px"></div>`;
-}
-window.removeFromCart=i=>{cart.splice(i,1);updateCartBadge();renderCart();};
-window.clearCart=()=>{cart=[];updateCartBadge();renderCart();};
-
-
 
 // ── 상품명 수정 모달 ──
 window.openItemNameModal=(itemId,currentName)=>{
@@ -1114,7 +933,6 @@ photoInput.addEventListener("change",async e=>{
   photoTargetId=null;e.target.value="";
 });
 window.openPhoto=(id)=>{photoTargetId=id;photoInput.click();};
-
 
 
 // ── 렌더 출고요청 ──
